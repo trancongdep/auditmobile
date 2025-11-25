@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>App An Toàn Điện v7 (Final Report)</title>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e9ecef;
+            margin: 0;
+            padding-bottom: 20px;
+        }
+
+        /* --- HEADER --- */
+        .app-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .app-header h1 { margin: 0; font-size: 18px; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; color: white; padding: 0 10px; }
+
+        .screen { display: none; padding: 15px; animation: fadeIn 0.3s; }
+        .screen.active { display: block; }
+
+        /* --- UI COMPONENTS --- */
+        .card {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: var(--shadow); margin-bottom: 20px;
+        }
+        .big-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; padding: 18px; margin-bottom: 15px;
+            border: none; border-radius: 10px;
+            font-size: 16px; font-weight: bold; color: white;
+            cursor: pointer; box-shadow: var(--shadow);
+            text-decoration: none;
+        }
+        .btn-office { background: linear-gradient(135deg, #0056b3, #004494); }
+        .btn-field { background: linear-gradient(135deg, #28a745, #218838); }
+        .btn-setting { background: linear-gradient(135deg, #6c757d, #5a6268); }
+        
+        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 5px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-save-manual { background: #007bff; }
+        .btn-export { background: #217346; }
+
+        input[type="text"] {
+            width: 100%; box-sizing: border-box; padding: 12px; margin: 10px 0;
+            border: 1px solid #ccc; border-radius: 5px; font-size: 16px;
+        }
+
+        /* --- GRID & LISTS --- */
+        .area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .area-card {
+            background: white; padding: 15px; border-radius: 10px;
+            text-align: center; box-shadow: var(--shadow); cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .area-card:hover { border-color: var(--primary); }
+        .area-icon { font-size: 28px; display: block; margin-bottom: 5px; }
+
+        .unit-item {
+            background: white; padding: 15px; margin-bottom: 10px;
+            border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 50px; font-weight: bold; margin: 0 auto; display:block; }
+        .btn-delete-unit { background: #ffebee; color: var(--danger); border: none; padding: 8px; border-radius: 5px; font-weight:bold; cursor:pointer;}
+
+        /* --- CHECKLIST ITEMS --- */
+        .check-card {
+            background: white; border-radius: 10px; padding: 15px;
+            margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .code-tag { background: #e2e6ea; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        
+        .status-row { display: flex; gap: 5px; margin-bottom: 10px; margin-top:10px; }
+        .btn-status {
+            flex: 1; padding: 10px; border: 1px solid #dee2e6; background: #f8f9fa;
+            border-radius: 5px; font-weight: 600; cursor: pointer;
+        }
+        .btn-status.ok.active { background: var(--success); color: white; border-color: var(--success); }
+        .btn-status.ng.active { background: var(--danger); color: white; border-color: var(--danger); }
+        .btn-status.na.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+
+        .note-row { display: flex; align-items: center; gap: 8px; }
+        textarea.note-input {
+            flex: 1; box-sizing: border-box; padding: 10px; 
+            border: 1px solid #ced4da; border-radius: 5px; 
+            min-height: 45px; font-family: inherit;
+        }
+        .btn-mic {
+            width: 45px; height: 45px; border: none; border-radius: 50%;
+            background-color: #e9ecef; color: #333; font-size: 20px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .btn-mic.recording { background-color: var(--danger); color: white; animation: pulse 1.5s infinite; }
+
+        /* --- SETTINGS & FOOTER --- */
+        .setting-group { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .setting-desc { font-size: 14px; color: #666; margin-bottom: 10px; }
+
+        .footer-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex; gap: 10px; z-index: 1000;
+        }
+        #toast {
+            visibility: hidden; min-width: 250px; margin-left: -125px;
+            background-color: #333; color: #fff; text-align: center;
+            border-radius: 2px; padding: 16px; position: fixed;
+            z-index: 2000; left: 50%; bottom: 80px;
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 80px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 80px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div id="toast">Thông báo</div>
+
+    <div class="app-header" id="mainHeader" style="display:none;">
+        <button class="btn-icon" onclick="handleBack()">⬅️</button>
+        <h1 id="headerTitle">An Toàn Điện</h1>
+        <button class="btn-icon" onclick="goHome()">🏠</button>
+    </div>
+
+    <div id="screen-welcome" class="screen active">
+        <div class="card" style="text-align:center; margin-top:50px;">
+            <h2>👷‍♂️ Sổ Tay Kiểm Tra v7</h2>
+            <p>Hệ thống báo cáo chuẩn hóa</p>
+            <input type="text" id="businessNameInput" placeholder="VD: Nhà máy Dệt A...">
+            <button class="big-btn btn-office" onclick="confirmStartSession()">Bắt đầu</button>
+        </div>
+    </div>
+
+    <div id="screen-dashboard" class="screen">
+        <div class="card" style="text-align:center;">
+            🏢 Đơn vị: <strong id="displayBusinessName" style="color:var(--primary)"></strong>
+        </div>
+        <button class="big-btn btn-office" onclick="goToOfficeCheck()">📂 KIỂM TRA HỒ SƠ</button>
+        <button class="big-btn btn-field" onclick="goToFieldSelection()">🏗️ KIỂM TRA HIỆN TRƯỜNG</button>
+        <div style="height: 20px;"></div>
+        <button class="big-btn btn-setting" onclick="goToSettings()">⚙️ CẤU HÌNH DỮ LIỆU</button>
+    </div>
+
+    <div id="screen-settings" class="screen">
+        <div class="card">
+            <h3>⚙️ Quản Lý Dữ Liệu</h3>
+            <div class="setting-group">
+                <h4>Bước 1: Tải file mẫu</h4>
+                <p class="setting-desc">Tải file cấu trúc câu hỏi (.csv) về máy.</p>
+                <button class="big-btn btn-export" onclick="downloadTemplate()">📥 Tải File Mẫu</button>
+            </div>
+            <div class="setting-group">
+                <h4>Bước 2: Cập nhật dữ liệu</h4>
+                <p class="setting-desc">Tải file đã chỉnh sửa lên ứng dụng.</p>
+                <input type="file" id="checklistImport" accept=".csv" style="display:none" onchange="importChecklist(this)">
+                <label for="checklistImport" class="big-btn btn-save-manual" style="cursor:pointer; display:block; text-align:center; padding:12px;">📤 Tải File Lên</label>
+            </div>
+            <div class="setting-group" style="border:none;">
+                <button class="big-btn btn-setting" style="background:#dc3545;" onclick="resetDefaultDB()">🔄 Khôi Phục Mặc Định</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-field-select" class="screen">
+        <h3 style="text-align:center;">Chọn hạng mục</h3>
+        <div class="area-grid">
+            <div class="area-card" onclick="goToUnitList('SUBSTATION', 'Trạm Biến Áp')">
+                <span class="area-icon">⚡</span> <span>Trạm Biến Áp</span>
+            </div>
+            <div class="area-card" onclick="goToUnitList('MSB', 'Phòng MSB')">
+                <span class="area-icon">🔌</span> <span>Phòng Điện Chính</span>
+            </div>
+            <div class="area-card" onclick="goToUnitList('DB', 'Tủ Phân Phối')">
+                <span class="area-icon">🏭</span> <span>Tủ Phân Phối</span>
+            </div>
+            <div class="area-card" onclick="goToUnitList('CABLES', 'Cáp & Dây')">
+                <span class="area-icon">🚧</span> <span>Tuyến Cáp</span>
+            </div>
+            <div class="area-card" onclick="goToUnitList('HAZARD', 'Khu Nguy Hiểm')">
+                <span class="area-icon">🔥</span> <span>Kho Hóa Chất</span>
+            </div>
+            <div class="area-card" onclick="goToUnitList('WORK', 'Thi Công')">
+                <span class="area-icon">🛠️</span> <span>Giám sát Thi công</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-unit-list" class="screen">
+        <div style="text-align:center; margin-bottom: 20px;">
+            <button class="btn-add" onclick="createNewUnit()">+ Thêm Đối Tượng Mới</button>
+        </div>
+        <div id="unit-list-container"></div>
+    </div>
+
+    <div id="screen-checklist" class="screen" style="padding-bottom: 80px;">
+        <div id="checklist-header-info" style="background:#fff; padding:10px; margin-bottom:15px; font-weight:bold; text-align:center; border-radius:5px;"></div>
+        <div id="checklist-container"></div>
+        <div class="footer-bar">
+            <button class="btn-action btn-save-manual" onclick="manualSave()">💾 Lưu</button>
+            <button class="btn-action btn-export" onclick="exportToExcel()">📥 Xuất Báo Cáo</button>
+        </div>
+    </div>
+
+<script>
+    // --- 1. DEFAULT DATABASE ---
+    const DEFAULT_DB = [
+        { id: "DOC-01", area: "OFFICE", text: "Thỏa thuận đấu nối & Hành lang an toàn", ref: "Luật ĐL C2.1" },
+        { id: "DOC-02", area: "OFFICE", text: "Báo cáo an toàn điện định kỳ (trước 10/01)", ref: "NĐ 62/2025" },
+        { id: "DOC-06", area: "OFFICE", text: "Biên bản kiểm định thiết bị >1kV còn hạn", ref: "TT 02/2025" },
+        { id: "SUB-01", area: "SUBSTATION", text: "Hành lang sạch sẽ, không vật cháy/lấn chiếm", ref: "Luật ĐL Đ67" },
+        { id: "SUB-02", area: "SUBSTATION", text: "Biển báo 'Cấm lại gần', 'Điện áp cao' đầy đủ", ref: "NĐ 62 Đ18" },
+        { id: "PNL-01", area: "MSB", text: "Mặt bằng trước tủ thông thoáng, thảm cách điện", ref: "C2.3.2" },
+        { id: "DB-01", area: "DB", text: "Dây dẫn đi trong ống/máng gọn gàng", ref: "C2.2.3" },
+        { id: "CAB-01", area: "CABLES", text: "Mốc báo hiệu cáp ngầm, đất không lún", ref: "C2.1.6" },
+        { id: "HAZ-01", area: "HAZARD", text: "Thiết bị điện phòng nổ (Ex)", ref: "C2.2.4" },
+        { id: "JOB-01", area: "WORK", text: "Có Phiếu công tác / Lệnh công tác", ref: "C2.3.6" }
+    ];
+
+    // --- 2. GLOBAL VARIABLES ---
+    const STORAGE_KEY_APP = 'app_v7_data';
+    const STORAGE_KEY_DB = 'app_v7_db_custom';
+    
+    let checklistDB = [];
+    let appState = { businessName: "", officeResults: {}, fieldUnits: [] };
+    let currentScreen = 'screen-welcome';
+    let currentAreaType = '';
+    let currentUnitIndex = -1;
+
+    // --- 3. SPEECH RECOGNITION ---
+    let recognition;
+    let isRecording = false;
+    let currentRecordingId = null;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'vi-VN';
+        recognition.continuous = false; 
+        recognition.interimResults = false;
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            if (currentRecordingId) {
+                const textarea = document.getElementById('note-' + currentRecordingId);
+                if (textarea) {
+                    const currentText = textarea.value;
+                    const newText = currentText ? currentText + " " + transcript : transcript;
+                    textarea.value = newText;
+                    setNote(currentRecordingId, newText);
+                }
+            }
+        };
+        recognition.onend = function() { stopRecordingUI(); };
+    }
+
+    function toggleSpeech(id) {
+        if (!recognition) return alert("Trình duyệt không hỗ trợ Voice.");
+        const btn = document.getElementById('btn-mic-' + id);
+        
+        if (isRecording && currentRecordingId === id) {
+            recognition.stop();
+        } else if (isRecording) {
+            showToast("Đang ghi âm mục khác...");
+        } else {
+            currentRecordingId = id; isRecording = true;
+            btn.classList.add('recording'); recognition.start();
+        }
+    }
+    function stopRecordingUI() {
+        if (currentRecordingId) {
+            const btn = document.getElementById('btn-mic-' + currentRecordingId);
+            if(btn) btn.classList.remove('recording');
+        }
+        isRecording = false; currentRecordingId = null;
+    }
+
+    // --- 4. APP INITIALIZATION ---
+    window.onload = function() {
+        loadChecklistDB();
+        loadAppState();
+        if (appState.businessName) showDashboard();
+        else switchScreen('screen-welcome');
+    };
+
+    function loadChecklistDB() {
+        const customDB = localStorage.getItem(STORAGE_KEY_DB);
+        checklistDB = customDB ? JSON.parse(customDB) : JSON.parse(JSON.stringify(DEFAULT_DB));
+    }
+    function loadAppState() {
+        const saved = localStorage.getItem(STORAGE_KEY_APP);
+        if (saved) {
+            try {
+                const p = JSON.parse(saved);
+                if(!p.fieldUnits) p.fieldUnits = [];
+                if(!p.officeResults) p.officeResults = {};
+                appState = p;
+            } catch(e){}
+        }
+    }
+    function saveState() { localStorage.setItem(STORAGE_KEY_APP, JSON.stringify(appState)); }
+
+    // --- NAVIGATION ---
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        currentScreen = id;
+        const header = document.getElementById('mainHeader');
+        if(id === 'screen-welcome') header.style.display='none';
+        else {
+            header.style.display='flex';
+            const t = document.getElementById('headerTitle');
+            if(id==='screen-dashboard') t.innerText="Trang Chủ";
+            else if(id==='screen-checklist') t.innerText="Kiểm Tra";
+            else t.innerText="An Toàn Điện";
+        }
+        window.scrollTo(0,0);
+    }
+    function handleBack() {
+        if(currentScreen==='screen-checklist') currentAreaType==='OFFICE' ? switchScreen('screen-dashboard') : switchScreen('screen-unit-list');
+        else if(currentScreen==='screen-unit-list') switchScreen('screen-field-select');
+        else if(currentScreen==='screen-field-select' || currentScreen==='screen-settings') switchScreen('screen-dashboard');
+    }
+    function goHome() { switchScreen('screen-dashboard'); }
+
+    // --- CORE LOGIC ---
+    function confirmStartSession() {
+        const name = document.getElementById('businessNameInput').value;
+        if(!name.trim()) return showToast("Nhập tên doanh nghiệp!");
+        appState.businessName = name;
+        saveState(); showDashboard();
+    }
+    function showDashboard() {
+        document.getElementById('displayBusinessName').innerText = appState.businessName;
+        switchScreen('screen-dashboard');
+    }
+    function goToSettings() { switchScreen('screen-settings'); }
+    function goToOfficeCheck() {
+        currentAreaType = 'OFFICE';
+        document.getElementById('checklist-header-info').innerText = "HỒ SƠ VĂN PHÒNG";
+        renderChecklist(appState.officeResults, 'OFFICE');
+        switchScreen('screen-checklist');
+    }
+    function goToFieldSelection() { switchScreen('screen-field-select'); }
+
+    // --- UNIT MANAGEMENT ---
+    function goToUnitList(area, name) {
+        currentAreaType = area; renderUnitList(); switchScreen('screen-unit-list');
+    }
+    function renderUnitList() {
+        const container = document.getElementById('unit-list-container'); container.innerHTML = '';
+        const units = appState.fieldUnits.filter(u => u.type === currentAreaType);
+        if(units.length === 0) container.innerHTML = `<p style="text-align:center;color:#777">Chưa có đối tượng nào.<br>Bấm nút Thêm để tạo.</p>`;
+        units.forEach(u => {
+            const div = document.createElement('div'); div.className = 'unit-item';
+            div.innerHTML = `
+                <div onclick="openUnit(${u.id})" style="flex-grow:1; cursor:pointer"><strong>${u.name}</strong></div>
+                <button class="btn-delete-unit" onclick="deleteUnit(${u.id})">Xóa</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+    function createNewUnit() {
+        const name = prompt("Tên đối tượng (VD: Tủ Tầng 1):");
+        if(name) {
+            appState.fieldUnits.push({id: Date.now(), type: currentAreaType, name: name, results: {}});
+            saveState(); renderUnitList();
+        }
+    }
+    function deleteUnit(id) {
+        if(confirm("Xóa đối tượng này?")) {
+            appState.fieldUnits = appState.fieldUnits.filter(u => u.id !== id);
+            saveState(); renderUnitList();
+        }
+    }
+    function openUnit(id) {
+        const idx = appState.fieldUnits.findIndex(u => u.id === id);
+        if(idx < 0) return;
+        currentUnitIndex = idx;
+        document.getElementById('checklist-header-info').innerText = appState.fieldUnits[idx].name;
+        renderChecklist(appState.fieldUnits[idx].results, currentAreaType);
+        switchScreen('screen-checklist');
+    }
+
+    // --- CHECKLIST RENDERER ---
+    function renderChecklist(resultsObj, area) {
+        const container = document.getElementById('checklist-container'); container.innerHTML = '';
+        const items = checklistDB.filter(i => i.area === area);
+        
+        if(items.length === 0) { container.innerHTML = `<p style="text-align:center">Chưa có câu hỏi.</p>`; return; }
+
+        items.forEach(item => {
+            const res = resultsObj[item.id] || { status: '', note: '' };
+            const div = document.createElement('div'); div.className = 'check-card';
+            div.innerHTML = `
+                <div><span class="code-tag">${item.id}</span> <small>${item.ref}</small></div>
+                <div style="margin:5px 0; font-weight:500;">${item.text}</div>
+                <div class="status-row">
+                    <button class="btn-status ok ${res.status==='OK'?'active':''}" onclick="setStatus('${item.id}','OK')">ĐẠT</button>
+                    <button class="btn-status ng ${res.status==='NG'?'active':''}" onclick="setStatus('${item.id}','NG')">KHÔNG</button>
+                    <button class="btn-status na ${res.status==='NA'?'active':''}" onclick="setStatus('${item.id}','NA')">N/A</button>
+                </div>
+                <div class="note-row">
+                    <textarea id="note-${item.id}" class="note-input" placeholder="Ghi chú (nhập hoặc nói)..." oninput="setNote('${item.id}', this.value)">${res.note}</textarea>
+                    <button id="btn-mic-${item.id}" class="btn-mic" onclick="toggleSpeech('${item.id}')">🎤</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function setStatus(id, status) {
+        let target = (currentAreaType === 'OFFICE') ? appState.officeResults : appState.fieldUnits[currentUnitIndex].results;
+        if(!target[id]) target[id] = {note: ''};
+        target[id].status = (target[id].status === status) ? '' : status;
+        saveState();
+        const btns = event.target.parentElement.querySelectorAll('button');
+        btns.forEach(b => b.classList.remove('active'));
+        if(target[id].status) event.target.classList.add('active');
+    }
+    
+    function setNote(id, val) {
+        let target = (currentAreaType === 'OFFICE') ? appState.officeResults : appState.fieldUnits[currentUnitIndex].results;
+        if(!target[id]) target[id] = {status: ''};
+        target[id].note = val; saveState();
+    }
+
+    // --- EXPORT LOGIC (UPDATED V7) ---
+    function exportToExcel() {
+        const BOM = "\uFEFF";
+        let csv = BOM + `DOANH NGHIỆP: ${appState.businessName}\nLoại,Tên Đối Tượng,Mã,Nội Dung,Kết Quả,Ghi Chú,Tham Chiếu\n`;
+
+        // Hàm chuyển đổi status code sang text tiếng Việt rõ ràng
+        const getStatusText = (status) => {
+            if (status === 'OK') return 'Đạt';
+            if (status === 'NG') return 'Không đạt';
+            if (status === 'NA') return 'N/A';
+            return ''; // Trống nếu chưa kiểm tra
+        };
+
+        const clean = (txt) => (txt || '').replace(/"/g, '""');
+
+        // 1. Office Data
+        checklistDB.filter(i => i.area === 'OFFICE').forEach(i => {
+            const r = appState.officeResults[i.id] || {status:'',note:''};
+            csv += `Hồ Sơ,Văn Phòng,${i.id},"${clean(i.text)}",${getStatusText(r.status)},"${clean(r.note)}",${i.ref}\n`;
+        });
+        
+        // 2. Field Data
+        appState.fieldUnits.forEach(u => {
+            checklistDB.filter(i => i.area === u.type).forEach(i => {
+                const r = u.results[i.id] || {status:'',note:''};
+                csv += `${u.type},"${clean(u.name)}",${i.id},"${clean(i.text)}",${getStatusText(r.status)},"${clean(r.note)}",${i.ref}\n`;
+            });
+        });
+
+        // Tên file theo định dạng: Baocao_yyyy-MM-dd_HH-mm-ss.csv
+        const now = new Date();
+        const pad = (n) => n < 10 ? '0'+n : n;
+        const filename = `Baocao_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.csv`;
+
+        downloadFile(csv, filename, "text/csv");
+    }
+
+    // --- UTILS ---
+    function downloadFile(c,n,m) {
+        const b = new Blob([c],{type:m});
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(b); a.download=n; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    function manualSave() { saveState(); showToast("Đã lưu!"); }
+    function showToast(m) {
+        const t = document.getElementById('toast'); t.innerText=m; t.className="show";
+        setTimeout(()=>t.className="", 3000);
+    }
+
+    // --- SETTINGS LOGIC ---
+    function downloadTemplate() {
+        const BOM = "\uFEFF"; let csv = BOM + "ID,AreaCode,Content,Reference\n";
+        checklistDB.forEach(i => csv += `${i.id},${i.area},"${i.text.replace(/"/g,'""')}","${i.ref.replace(/"/g,'""')}"\n`);
+        downloadFile(csv, "Mau_Kiem_Tra.csv", "text/csv");
+    }
+    function importChecklist(input) {
+        const file = input.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const lines = e.target.result.split(/\r\n|\n/); const newDB = [];
+            for(let i=1; i<lines.length; i++) {
+                // Simple parser
+                let parts=[], buf="", inQ=false;
+                for(let c of lines[i]) { if(c==='"'){inQ=!inQ;continue} if(c===','&&!inQ){parts.push(buf);buf=""}else buf+=c; }
+                parts.push(buf);
+                if(parts.length>=3) newDB.push({id:parts[0], area:parts[1], text:parts[2], ref:parts[3]||""});
+            }
+            if(newDB.length>0) { checklistDB=newDB; localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(checklistDB)); showToast("Cập nhật thành công!"); }
+        }; reader.readAsText(file);
+    }
+    function resetDefaultDB() { localStorage.removeItem(STORAGE_KEY_DB); loadChecklistDB(); showToast("Đã khôi phục!"); }
+</script>
+</body>
+</html>
