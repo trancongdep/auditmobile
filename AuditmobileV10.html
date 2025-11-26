@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>App An Toàn Điện v10 (Import/Export)</title>
+    <style>
+        :root {
+            --primary: #0056b3; --success: #28a745; --danger: #dc3545; --secondary: #6c757d;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #e9ecef; margin: 0; padding-bottom: 100px; }
+        
+        /* HEADER */
+        .app-header { background: var(--primary); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
+        .app-header h1 { margin: 0; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-icon { background: none; border: none; font-size: 20px; color: white; padding: 0 10px; }
+
+        .screen { display: none; padding: 15px; animation: fadeIn 0.3s; }
+        .screen.active { display: block; }
+
+        /* CARDS */
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        .big-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; border: none; border-radius: 8px; font-weight: bold; color: white; font-size: 16px; cursor: pointer; text-align: center; }
+        .btn-office { background: #0056b3; } .btn-field { background: #28a745; } .btn-setting { background: #6c757d; }
+        .btn-backup { background: #17a2b8; } /* Màu xanh cyan cho backup */
+        
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+
+        /* GRID & LISTS */
+        .area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .area-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: var(--shadow); cursor: pointer; }
+        .unit-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
+        
+        .btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 50px; margin: 0 auto; display: block; font-weight:bold; }
+        .btn-del { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+
+        /* CHECKLIST UI */
+        .check-card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: var(--shadow); }
+        
+        .status-row { display: flex; gap: 5px; margin: 10px 0; }
+        .btn-status { flex: 1; padding: 10px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 5px; font-weight: 600; }
+        .btn-status.ok.active { background: #28a745; color: white; border-color: #28a745; }
+        .btn-status.ng.active { background: #dc3545; color: white; border-color: #dc3545; }
+        .btn-status.na.active { background: #6c757d; color: white; border-color: #6c757d; }
+
+        /* NOTE & MIC */
+        .note-row { display: flex; gap: 5px; align-items: center; margin-bottom: 10px; }
+        textarea { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; min-height: 40px; }
+        .btn-mic { width: 44px; height: 44px; border: none; border-radius: 50%; background: #e9ecef; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-mic.recording { background: #dc3545; color: white; animation: pulse 1s infinite; }
+
+        /* PHOTO SECTION */
+        .photo-section { border-top: 1px dashed #ddd; padding-top: 10px; }
+        .photo-list { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; }
+        .photo-item { position: relative; width: 70px; height: 70px; flex-shrink: 0; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-del { position: absolute; top: 0; right: 0; background: rgba(255,0,0,0.8); color: white; width: 20px; height: 20px; font-size: 14px; text-align: center; line-height: 20px; cursor: pointer; }
+        .btn-cam { background: #e9ecef; border: 1px dashed #999; color: #555; width: 100%; padding: 8px; border-radius: 5px; margin-top: 5px; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 14px; font-weight: bold; }
+
+        /* FOOTER */
+        .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; display: flex; gap: 5px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); flex-wrap: wrap;}
+        .btn-act { flex: 1; padding: 12px; border: none; border-radius: 5px; color: white; font-weight: bold; font-size: 13px; min-width: 100px; }
+
+        /* SETTINGS GROUP */
+        .setting-group { border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
+        .setting-group h4 { margin: 0 0 10px 0; color: #333; }
+        .setting-desc { font-size: 13px; color: #666; margin-bottom: 10px; }
+
+        #toast { visibility: hidden; position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 4px; z-index: 2000; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes fadein { from {opacity: 0;} to {opacity: 1;} }
+        @keyframes fadeout { from {opacity: 1;} to {opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<div id="toast">Thông báo</div>
+
+<div class="app-header" id="header" style="display:none">
+    <button class="btn-icon" onclick="back()">⬅️</button>
+    <h1 id="title">Trang chủ</h1>
+    <button class="btn-icon" onclick="home()">🏠</button>
+</div>
+
+<div id="scr-welcome" class="screen active">
+    <div class="card" style="text-align:center; margin-top:50px">
+        <h2>Sổ Tay Kiểm Tra v10</h2>
+        <p>Quản lý toàn diện: Hình ảnh & Backup</p>
+        <input type="text" id="bizName" placeholder="Tên Doanh nghiệp...">
+        <button class="big-btn btn-office" onclick="start()">BẮT ĐẦU MỚI</button>
+        
+        <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px">
+            <p style="color:#666; font-size:14px">Hoặc khôi phục dữ liệu cũ:</p>
+            <input type="file" id="fResWelcome" accept=".json" style="display:none" onchange="impResults(this)">
+            <label for="fResWelcome" class="big-btn btn-backup" style="font-weight:normal; background:#6c757d">📥 Mở file Kết quả (.json)</label>
+        </div>
+    </div>
+</div>
+
+<div id="scr-dash" class="screen">
+    <div class="card" style="text-align:center">🏢 <b id="dispName" style="color:var(--primary)"></b></div>
+    <button class="big-btn btn-office" onclick="goOffice()">📂 HỒ SƠ VĂN PHÒNG</button>
+    <button class="big-btn btn-field" onclick="goField()">🏗️ HIỆN TRƯỜNG</button>
+    <button class="big-btn btn-setting" onclick="goSet()">⚙️ CẤU HÌNH & BACKUP</button>
+</div>
+
+<div id="scr-field" class="screen">
+    <div class="area-grid">
+        <div class="area-card" onclick="goUnit('SUBSTATION')">⚡ Trạm Biến Áp</div>
+        <div class="area-card" onclick="goUnit('MSB')">🔌 Phòng MSB</div>
+        <div class="area-card" onclick="goUnit('DB')">🏭 Tủ Phân Phối</div>
+        <div class="area-card" onclick="goUnit('CABLES')">🚧 Cáp & Dây</div>
+        <div class="area-card" onclick="goUnit('HAZARD')">🔥 Kho Hóa Chất</div>
+        <div class="area-card" onclick="goUnit('WORK')">🛠️ Thi Công</div>
+    </div>
+</div>
+
+<div id="scr-unit" class="screen">
+    <button class="btn-add" onclick="addUnit()">+ Thêm Mới</button>
+    <div id="unit-list" style="margin-top:20px"></div>
+</div>
+
+<div id="scr-check" class="screen">
+    <div id="check-info" style="background:white; padding:10px; text-align:center; font-weight:bold; margin-bottom:10px; border-radius:5px"></div>
+    <div id="check-list"></div>
+    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none" onchange="processPhoto(this)">
+    
+    <div class="footer-bar">
+        <button class="btn-act" style="background:#007bff" onclick="save()">💾 LƯU</button>
+        <button class="btn-act" style="background:#217346" onclick="expCSV()">📊 EXCEL</button>
+        <button class="btn-act" style="background:#6610f2" onclick="expHTML()">📷 HTML</button>
+    </div>
+</div>
+
+<div id="scr-set" class="screen">
+    <div class="card">
+        <h3>Quản lý dữ liệu</h3>
+
+        <div class="setting-group">
+            <h4>1. Sao lưu & Khôi phục Kết quả</h4>
+            <p class="setting-desc">Dùng để chuyển dữ liệu sang máy khác hoặc lưu trữ dự phòng (Bao gồm cả hình ảnh).</p>
+            <button class="big-btn btn-backup" onclick="expResultsJSON()">💾 Sao lưu Kết quả (.json)</button>
+            
+            <input type="file" id="fResSet" accept=".json" style="display:none" onchange="impResults(this)">
+            <label for="fResSet" class="big-btn btn-backup" style="background:#138496; margin-bottom:0">📥 Khôi phục Kết quả (.json)</label>
+        </div>
+
+        <div class="setting-group">
+            <h4>2. Cấu hình Câu hỏi</h4>
+            <p class="setting-desc">Chỉnh sửa danh sách hạng mục kiểm tra bằng Excel.</p>
+            <button class="big-btn btn-field" onclick="dlTemp()">📥 Tải File Mẫu (.csv)</button>
+            
+            <input type="file" id="fImp" accept=".csv" style="display:none" onchange="impDB(this)">
+            <label for="fImp" class="big-btn btn-office" style="margin-bottom:0">📤 Cập nhật Câu hỏi (.csv)</label>
+        </div>
+
+        <div class="setting-group" style="border:none">
+            <button class="big-btn btn-setting" style="background:#dc3545" onclick="resetDB()">🔄 Reset Mặc Định</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // DATA DEFAULT
+    const DEF_DB=[
+        {id:"DOC-01",area:"OFFICE",text:"Thỏa thuận đấu nối",ref:"Luật ĐL"},
+        {id:"DOC-02",area:"OFFICE",text:"Báo cáo định kỳ",ref:"NĐ 62"},
+        {id:"SUB-01",area:"SUBSTATION",text:"Hành lang an toàn",ref:"NĐ 62"},
+        {id:"PNL-01",area:"MSB",text:"Thảm cách điện",ref:"QCVN"},
+        {id:"DB-01",area:"DB",text:"Dây dẫn gọn gàng",ref:"QCVN"},
+        {id:"JOB-01",area:"WORK",text:"Phiếu công tác",ref:"QCVN 25"}
+    ];
+    let db=[], state={name:"", off:{}, fld:[]}, curScr='scr-welcome', curArea='', curUnitIdx=-1;
+    let curPhotoId = null;
+
+    // VOICE LOGIC
+    let rec, isRec=false, curRecId=null;
+    function initVoice() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        rec = new SR(); rec.lang = 'vi-VN'; rec.continuous = false;
+        rec.onresult = e => {
+            const txt = e.results[0][0].transcript;
+            const el = document.getElementById('n-'+curRecId);
+            if(el) { el.value = el.value ? el.value + " " + txt : txt; setNote(curRecId, el.value); }
+        };
+        rec.onend = () => { isRec=false; document.querySelectorAll('.btn-mic').forEach(b=>b.classList.remove('recording')); };
+    }
+    function toggleVoice(id) {
+        if(!rec) return alert("Cần Chrome Android / Safari iOS (HTTPS).");
+        if(isRec) { rec.abort(); setTimeout(()=>startVoice(id),300); } else startVoice(id);
+    }
+    function startVoice(id) {
+        curRecId=id; try{ rec.start(); isRec=true; document.getElementById('mic-'+id).classList.add('recording'); } catch(e){}
+    }
+
+    // INIT
+    window.onload = function() {
+        initVoice();
+        const d=localStorage.getItem('v10_db'); db=d?JSON.parse(d):JSON.parse(JSON.stringify(DEF_DB));
+        const s=localStorage.getItem('v10_st'); if(s) state=JSON.parse(s);
+        if(state.name) nav('scr-dash'); else nav('scr-welcome');
+    }
+
+    // NAV
+    function nav(id) {
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); curScr=id;
+        document.getElementById('header').style.display = (id==='scr-welcome')?'none':'flex';
+        let t="An Toàn Điện"; if(id==='scr-dash') t="Trang Chủ"; if(id==='scr-check') t="Kiểm Tra";
+        document.getElementById('title').innerText=t; window.scrollTo(0,0);
+    }
+    function back() {
+        if(curScr==='scr-check') curArea==='OFFICE'?nav('scr-dash'):nav('scr-unit');
+        else if(curScr==='scr-unit') nav('scr-field');
+        else if(curScr==='scr-field'||curScr==='scr-set') nav('scr-dash');
+    }
+    function home() { nav('scr-dash'); }
+    function toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.className="show"; setTimeout(()=>t.className="",2000); }
+
+    // MAIN LOGIC
+    function start() {
+        const n=document.getElementById('bizName').value; if(!n) return toast("Nhập tên!");
+        state.name=n; save(); nav('scr-dash'); document.getElementById('dispName').innerText=n;
+    }
+    function save() { localStorage.setItem('v10_st',JSON.stringify(state)); toast("Đã lưu!"); }
+    
+    function goOffice() { curArea='OFFICE'; renCheck(state.off); nav('scr-check'); }
+    function goField() { nav('scr-field'); }
+    function goSet() { nav('scr-set'); }
+    function goUnit(a) { curArea=a; renUnit(); nav('scr-unit'); }
+
+    function renUnit() {
+        const c=document.getElementById('unit-list'); c.innerHTML='';
+        state.fld.filter(u=>u.type===curArea).forEach(u=>{
+            const d=document.createElement('div'); d.className='unit-item';
+            d.innerHTML=`<div onclick="openU(${u.id})" style="flex:1"><b>${u.name}</b></div><button class="btn-del" onclick="delU(${u.id})">Xóa</button>`;
+            c.appendChild(d);
+        });
+    }
+    function addUnit() {
+        const n=prompt("Tên tủ/khu vực:"); if(n) { state.fld.push({id:Date.now(), type:curArea, name:n, res:{}}); save(); renUnit(); }
+    }
+    function delU(id) { if(confirm("Xóa?")) { state.fld=state.fld.filter(u=>u.id!==id); save(); renUnit(); } }
+    function openU(id) {
+        curUnitIdx=state.fld.findIndex(u=>u.id===id);
+        document.getElementById('check-info').innerText = state.fld[curUnitIdx].name;
+        renCheck(state.fld[curUnitIdx].res); nav('scr-check');
+    }
+
+    // CHECKLIST RENDER
+    function renCheck(resObj) {
+        const c=document.getElementById('check-list'); c.innerHTML='';
+        const items=db.filter(i=>i.area===curArea);
+        if(!items.length) return c.innerHTML='<p style="text-align:center">Chưa có mục kiểm tra.</p>';
+        
+        items.forEach(i=>{
+            const r=resObj[i.id]||{s:'',n:'',p:[]};
+            if(!r.p) r.p = [];
+            
+            let photoHtml = '';
+            r.p.forEach((imgData, idx) => {
+                photoHtml += `<div class="photo-item"><img src="${imgData}" onclick="viewImg('${imgData}')"><div class="photo-del" onclick="delPhoto('${i.id}', ${idx})">×</div></div>`;
+            });
+
+            const d=document.createElement('div'); d.className='check-card';
+            d.innerHTML=`
+                <div><b>${i.id}</b> <small>${i.ref}</small></div>
+                <div style="margin:5px 0">${i.text}</div>
+                <div class="status-row">
+                    <button class="btn-status ok ${r.s==='OK'?'active':''}" onclick="setS('${i.id}','OK',this)">ĐẠT</button>
+                    <button class="btn-status ng ${r.s==='NG'?'active':''}" onclick="setS('${i.id}','NG',this)">KHÔNG</button>
+                    <button class="btn-status na ${r.s==='NA'?'active':''}" onclick="setS('${i.id}','NA',this)">N/A</button>
+                </div>
+                <div class="note-row">
+                    <textarea id="n-${i.id}" placeholder="Ghi chú..." oninput="setNote('${i.id}',this.value)">${r.n}</textarea>
+                    <button id="mic-${i.id}" class="btn-mic" onclick="toggleVoice('${i.id}')">🎤</button>
+                </div>
+                <div class="photo-section">
+                    <div class="photo-list" id="plist-${i.id}">${photoHtml}</div>
+                    <div class="btn-cam" onclick="takePhoto('${i.id}')">📷 Chụp hình</div>
+                </div>
+            `;
+            c.appendChild(d);
+        });
+    }
+
+    function setS(id, s, btn) {
+        const t = getTarget(id); t.s = (t.s===s)?'':s; save();
+        btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        if(t.s) btn.classList.add('active');
+    }
+    function setNote(id, v) { const t=getTarget(id); t.n=v; save(); }
+    function getTarget(id) {
+        const t = curArea==='OFFICE'?state.off:state.fld[curUnitIdx].res;
+        if(!t[id]) t[id]={s:'',n:'',p:[]}; if(!t[id].p) t[id].p=[]; return t[id];
+    }
+
+    // PHOTO
+    function takePhoto(id) { curPhotoId = id; document.getElementById('camInput').click(); }
+    function processPhoto(input) {
+        const file = input.files[0]; if(!file || !curPhotoId) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                const maxW = 600; const scale = maxW/img.width;
+                const w = (scale<1)?maxW:img.width; const h = (scale<1)?img.height*scale:img.height;
+                canvas.width = w; canvas.height = h; ctx.drawImage(img,0,0,w,h);
+                const b64 = canvas.toDataURL('image/jpeg', 0.6);
+                
+                const t = getTarget(curPhotoId); t.p.push(b64); save();
+                
+                const plist = document.getElementById('plist-'+curPhotoId);
+                const idx = t.p.length - 1;
+                const div = document.createElement('div'); div.className='photo-item';
+                div.innerHTML = `<img src="${b64}" onclick="viewImg('${b64}')"><div class="photo-del" onclick="delPhoto('${curPhotoId}', ${idx})">×</div>`;
+                plist.appendChild(div); toast("Đã thêm ảnh!");
+            }
+            img.src = e.target.result;
+        }
+        reader.readAsDataURL(file); input.value = '';
+    }
+    function delPhoto(id, idx) { if(!confirm("Xóa ảnh?")) return; const t=getTarget(id); t.p.splice(idx,1); save(); curArea==='OFFICE'?renCheck(state.off):renCheck(state.fld[curUnitIdx].res); }
+    function viewImg(src) { const w=window.open(""); w.document.write(`<img src="${src}" style="width:100%">`); }
+
+    // === NEW IMPORT/EXPORT LOGIC ===
+
+    // 1. IMPORT/EXPORT RESULTS (JSON) - Dữ liệu kết quả
+    function expResultsJSON() {
+        if(!state.name) return toast("Chưa có dữ liệu!");
+        const dataStr = JSON.stringify(state, null, 2);
+        const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
+        downloadFile(dataStr, `KetQua_${now}.json`, 'application/json');
+    }
+
+    function impResults(input) {
+        const file = input.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                // Basic validation
+                if(data && (data.name || data.off || data.fld)) {
+                    state = data;
+                    if(!state.off) state.off = {};
+                    if(!state.fld) state.fld = [];
+                    save();
+                    document.getElementById('dispName').innerText = state.name;
+                    toast("Khôi phục thành công!");
+                    nav('scr-dash');
+                } else {
+                    alert("File không hợp lệ!");
+                }
+            } catch(err) {
+                alert("Lỗi đọc file JSON: " + err);
+            }
+            input.value = ''; // Reset input
+        };
+        reader.readAsText(file);
+    }
+
+    // 2. IMPORT/EXPORT DATABASE (CSV) - Cấu hình câu hỏi
+    function dlTemp() {
+        const BOM="\uFEFF"; let csv=BOM+"ID,Area,Text,Ref\n";
+        db.forEach(i=>csv+=`${i.id},${i.area},"${i.text}","${i.ref}"\n`);
+        downloadFile(csv, "Mau_Cau_Hoi.csv", "text/csv");
+    }
+    
+    function impDB(inp) {
+        const f=inp.files[0]; if(!f)return;
+        const r=new FileReader();
+        r.onload=e=>{
+            const l=e.target.result.split(/\r\n|\n/); const nd=[];
+            for(let i=1;i<l.length;i++) {
+                const p=l[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                if(p.length>=3) nd.push({id:p[0].trim(),area:p[1].trim(),text:p[2].replace(/"/g,'').trim(),ref:p[3]?p[3].replace(/"/g,'').trim():''});
+            }
+            if(nd.length){ db=nd; localStorage.setItem('v10_db',JSON.stringify(db)); toast("Cập nhật câu hỏi xong!"); }
+        }; r.readAsText(f); inp.value='';
+    }
+    
+    function resetDB() { localStorage.removeItem('v10_db'); db=JSON.parse(JSON.stringify(DEF_DB)); toast("Đã reset câu hỏi!"); }
+
+    // 3. EXPORT REPORTS
+    function expCSV() {
+        const BOM="\uFEFF"; let csv=BOM+`DOANH NGHIỆP: ${state.name}\nLoại,Tên,Mã,Nội dung,Kết quả,Ghi chú\n`;
+        const getT=s=>s==='OK'?'Đạt':(s==='NG'?'Không đạt':(s==='NA'?'N/A':''));
+        const cln=t=>(t||'').replace(/"/g,'""');
+        
+        db.filter(i=>i.area==='OFFICE').forEach(i=>{
+            const r=state.off[i.id]||{};
+            csv+=`Hồ sơ,VP,${i.id},"${cln(i.text)}",${getT(r.s)},"${cln(r.n)}"\n`;
+        });
+        state.fld.forEach(u=>{
+            db.filter(i=>i.area===u.type).forEach(i=>{
+                const r=u.res[i.id]||{};
+                csv+=`${u.type},"${cln(u.name)}",${i.id},"${cln(i.text)}",${getT(r.s)},"${cln(r.n)}"\n`;
+            });
+        });
+        
+        const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
+        downloadFile(csv, `BaoCao_${now}.csv`, 'text/csv');
+    }
+
+    function expHTML() {
+        let h = `<html><head><meta charset="utf-8"><title>Báo cáo</title><style>
+        body{font-family:sans-serif} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;padding:8px} th{background:#eee}
+        .status-OK{color:green;font-weight:bold} .status-NG{color:red;font-weight:bold}
+        img{width:80px;height:80px;object-fit:cover;margin:2px;border:1px solid #ccc}
+        </style></head><body><h2>BÁO CÁO: ${state.name}</h2>`;
+        
+        const genRow = (type, name, i, res) => {
+            let imgs = ''; (res.p||[]).forEach(src => imgs += `<img src="${src}">`);
+            let st = res.s==='OK'?'ĐẠT':(res.s==='NG'?'KHÔNG ĐẠT':(res.s==='NA'?'N/A':'-'));
+            let cls = 'status-'+res.s;
+            return `<tr><td>${type}</td><td>${name}</td><td>${i.id}</td><td>${i.text}</td><td class="${cls}">${st}</td><td>${res.n}</td><td>${imgs}</td></tr>`;
+        };
+
+        h += `<table><tr><th>Khu vực</th><th>Đối tượng</th><th>Mã</th><th>Nội dung</th><th>Kết quả</th><th>Ghi chú</th><th>Hình ảnh</th></tr>`;
+        db.filter(i=>i.area==='OFFICE').forEach(i=> h += genRow("Hồ sơ", "VP", i, state.off[i.id]||{}));
+        state.fld.forEach(u=> db.filter(i=>i.area===u.type).forEach(i=> h += genRow(u.type, u.name, i, u.res[i.id]||{})));
+        h += `</table></body></html>`;
+        
+        const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
+        downloadFile(h, `BaoCaoAnh_${now}.html`, 'text/html');
+    }
+
+    // UTILS
+    function downloadFile(content, name, mime) {
+        const b = new Blob([content],{type:mime});
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+</script>
+</body>
+</html>
