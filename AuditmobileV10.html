@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>App An Toàn Điện v10 (Import/Export)</title>
+    <title>App An Toàn Điện v11 (CSV Sync)</title>
     <style>
         :root {
             --primary: #0056b3; --success: #28a745; --danger: #dc3545; --secondary: #6c757d;
@@ -23,7 +23,7 @@
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: var(--shadow); margin-bottom: 20px; }
         .big-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; border: none; border-radius: 8px; font-weight: bold; color: white; font-size: 16px; cursor: pointer; text-align: center; }
         .btn-office { background: #0056b3; } .btn-field { background: #28a745; } .btn-setting { background: #6c757d; }
-        .btn-backup { background: #17a2b8; } /* Màu xanh cyan cho backup */
+        .btn-backup { background: #17a2b8; } 
         
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
 
@@ -37,7 +37,6 @@
 
         /* CHECKLIST UI */
         .check-card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: var(--shadow); }
-        
         .status-row { display: flex; gap: 5px; margin: 10px 0; }
         .btn-status { flex: 1; padding: 10px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 5px; font-weight: 600; }
         .btn-status.ok.active { background: #28a745; color: white; border-color: #28a745; }
@@ -50,8 +49,7 @@
         .btn-mic { width: 44px; height: 44px; border: none; border-radius: 50%; background: #e9ecef; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .btn-mic.recording { background: #dc3545; color: white; animation: pulse 1s infinite; }
 
-        /* PHOTO SECTION */
-        .photo-section { border-top: 1px dashed #ddd; padding-top: 10px; }
+        /* PHOTO */
         .photo-list { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; }
         .photo-item { position: relative; width: 70px; height: 70px; flex-shrink: 0; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
         .photo-item img { width: 100%; height: 100%; object-fit: cover; }
@@ -62,17 +60,15 @@
         .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; display: flex; gap: 5px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); flex-wrap: wrap;}
         .btn-act { flex: 1; padding: 12px; border: none; border-radius: 5px; color: white; font-weight: bold; font-size: 13px; min-width: 100px; }
 
-        /* SETTINGS GROUP */
         .setting-group { border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
-        .setting-group h4 { margin: 0 0 10px 0; color: #333; }
         .setting-desc { font-size: 13px; color: #666; margin-bottom: 10px; }
 
         #toast { visibility: hidden; position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 4px; z-index: 2000; }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        @keyframes fadein { from {opacity: 0;} to {opacity: 1;} }
-        @keyframes fadeout { from {opacity: 1;} to {opacity: 0;} }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 80px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 80px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
 </head>
 <body>
@@ -87,15 +83,15 @@
 
 <div id="scr-welcome" class="screen active">
     <div class="card" style="text-align:center; margin-top:50px">
-        <h2>Sổ Tay Kiểm Tra v10</h2>
-        <p>Quản lý toàn diện: Hình ảnh & Backup</p>
+        <h2>Sổ Tay Kiểm Tra v11</h2>
+        <p>Đồng bộ dữ liệu bằng file CSV</p>
         <input type="text" id="bizName" placeholder="Tên Doanh nghiệp...">
         <button class="big-btn btn-office" onclick="start()">BẮT ĐẦU MỚI</button>
         
         <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px">
-            <p style="color:#666; font-size:14px">Hoặc khôi phục dữ liệu cũ:</p>
-            <input type="file" id="fResWelcome" accept=".json" style="display:none" onchange="impResults(this)">
-            <label for="fResWelcome" class="big-btn btn-backup" style="font-weight:normal; background:#6c757d">📥 Mở file Kết quả (.json)</label>
+            <p style="color:#666; font-size:14px">Hoặc tiếp tục từ file CSV:</p>
+            <input type="file" id="fResWelcome" accept=".csv" style="display:none" onchange="impResultsCSV(this, true)">
+            <label for="fResWelcome" class="big-btn btn-backup" style="font-weight:normal; background:#28a745">📥 Mở file Kết quả (.csv)</label>
         </div>
     </div>
 </div>
@@ -104,7 +100,7 @@
     <div class="card" style="text-align:center">🏢 <b id="dispName" style="color:var(--primary)"></b></div>
     <button class="big-btn btn-office" onclick="goOffice()">📂 HỒ SƠ VĂN PHÒNG</button>
     <button class="big-btn btn-field" onclick="goField()">🏗️ HIỆN TRƯỜNG</button>
-    <button class="big-btn btn-setting" onclick="goSet()">⚙️ CẤU HÌNH & BACKUP</button>
+    <button class="big-btn btn-setting" onclick="goSet()">⚙️ CẤU HÌNH & CSV</button>
 </div>
 
 <div id="scr-field" class="screen">
@@ -130,8 +126,8 @@
     
     <div class="footer-bar">
         <button class="btn-act" style="background:#007bff" onclick="save()">💾 LƯU</button>
-        <button class="btn-act" style="background:#217346" onclick="expCSV()">📊 EXCEL</button>
-        <button class="btn-act" style="background:#6610f2" onclick="expHTML()">📷 HTML</button>
+        <button class="btn-act" style="background:#217346" onclick="expCSV()">📊 XUẤT CSV</button>
+        <button class="btn-act" style="background:#6610f2" onclick="expHTML()">📷 XUẤT HTML</button>
     </div>
 </div>
 
@@ -140,21 +136,20 @@
         <h3>Quản lý dữ liệu</h3>
 
         <div class="setting-group">
-            <h4>1. Sao lưu & Khôi phục Kết quả</h4>
-            <p class="setting-desc">Dùng để chuyển dữ liệu sang máy khác hoặc lưu trữ dự phòng (Bao gồm cả hình ảnh).</p>
-            <button class="big-btn btn-backup" onclick="expResultsJSON()">💾 Sao lưu Kết quả (.json)</button>
+            <h4>1. Kết quả kiểm tra (CSV)</h4>
+            <p class="setting-desc">File này dùng để báo cáo và có thể nạp ngược lại vào ứng dụng để sửa.</p>
+            <button class="big-btn btn-backup" style="background:#217346" onclick="expCSV()">💾 Xuất Kết quả (.csv)</button>
             
-            <input type="file" id="fResSet" accept=".json" style="display:none" onchange="impResults(this)">
-            <label for="fResSet" class="big-btn btn-backup" style="background:#138496; margin-bottom:0">📥 Khôi phục Kết quả (.json)</label>
+            <input type="file" id="fResSet" accept=".csv" style="display:none" onchange="impResultsCSV(this, false)">
+            <label for="fResSet" class="big-btn btn-backup" style="background:#138496; margin-bottom:0">📥 Nhập Kết quả (.csv)</label>
         </div>
 
         <div class="setting-group">
             <h4>2. Cấu hình Câu hỏi</h4>
-            <p class="setting-desc">Chỉnh sửa danh sách hạng mục kiểm tra bằng Excel.</p>
+            <p class="setting-desc">Cập nhật danh sách câu hỏi kiểm tra.</p>
             <button class="big-btn btn-field" onclick="dlTemp()">📥 Tải File Mẫu (.csv)</button>
-            
             <input type="file" id="fImp" accept=".csv" style="display:none" onchange="impDB(this)">
-            <label for="fImp" class="big-btn btn-office" style="margin-bottom:0">📤 Cập nhật Câu hỏi (.csv)</label>
+            <label for="fImp" class="big-btn btn-office" style="margin-bottom:0">📤 Cập nhật Câu hỏi</label>
         </div>
 
         <div class="setting-group" style="border:none">
@@ -200,12 +195,11 @@
     // INIT
     window.onload = function() {
         initVoice();
-        const d=localStorage.getItem('v10_db'); db=d?JSON.parse(d):JSON.parse(JSON.stringify(DEF_DB));
-        const s=localStorage.getItem('v10_st'); if(s) state=JSON.parse(s);
+        const d=localStorage.getItem('v11_db'); db=d?JSON.parse(d):JSON.parse(JSON.stringify(DEF_DB));
+        const s=localStorage.getItem('v11_st'); if(s) state=JSON.parse(s);
         if(state.name) nav('scr-dash'); else nav('scr-welcome');
     }
 
-    // NAV
     function nav(id) {
         document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         document.getElementById(id).classList.add('active'); curScr=id;
@@ -221,12 +215,11 @@
     function home() { nav('scr-dash'); }
     function toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.className="show"; setTimeout(()=>t.className="",2000); }
 
-    // MAIN LOGIC
     function start() {
         const n=document.getElementById('bizName').value; if(!n) return toast("Nhập tên!");
         state.name=n; save(); nav('scr-dash'); document.getElementById('dispName').innerText=n;
     }
-    function save() { localStorage.setItem('v10_st',JSON.stringify(state)); toast("Đã lưu!"); }
+    function save() { localStorage.setItem('v11_st',JSON.stringify(state)); toast("Đã lưu!"); }
     
     function goOffice() { curArea='OFFICE'; renCheck(state.off); nav('scr-check'); }
     function goField() { nav('scr-field'); }
@@ -251,7 +244,6 @@
         renCheck(state.fld[curUnitIdx].res); nav('scr-check');
     }
 
-    // CHECKLIST RENDER
     function renCheck(resObj) {
         const c=document.getElementById('check-list'); c.innerHTML='';
         const items=db.filter(i=>i.area===curArea);
@@ -298,8 +290,6 @@
         const t = curArea==='OFFICE'?state.off:state.fld[curUnitIdx].res;
         if(!t[id]) t[id]={s:'',n:'',p:[]}; if(!t[id].p) t[id].p=[]; return t[id];
     }
-
-    // PHOTO
     function takePhoto(id) { curPhotoId = id; document.getElementById('camInput').click(); }
     function processPhoto(input) {
         const file = input.files[0]; if(!file || !curPhotoId) return;
@@ -312,9 +302,7 @@
                 const w = (scale<1)?maxW:img.width; const h = (scale<1)?img.height*scale:img.height;
                 canvas.width = w; canvas.height = h; ctx.drawImage(img,0,0,w,h);
                 const b64 = canvas.toDataURL('image/jpeg', 0.6);
-                
                 const t = getTarget(curPhotoId); t.p.push(b64); save();
-                
                 const plist = document.getElementById('plist-'+curPhotoId);
                 const idx = t.p.length - 1;
                 const div = document.createElement('div'); div.className='photo-item';
@@ -328,46 +316,121 @@
     function delPhoto(id, idx) { if(!confirm("Xóa ảnh?")) return; const t=getTarget(id); t.p.splice(idx,1); save(); curArea==='OFFICE'?renCheck(state.off):renCheck(state.fld[curUnitIdx].res); }
     function viewImg(src) { const w=window.open(""); w.document.write(`<img src="${src}" style="width:100%">`); }
 
-    // === NEW IMPORT/EXPORT LOGIC ===
-
-    // 1. IMPORT/EXPORT RESULTS (JSON) - Dữ liệu kết quả
-    function expResultsJSON() {
-        if(!state.name) return toast("Chưa có dữ liệu!");
-        const dataStr = JSON.stringify(state, null, 2);
+    // === CSV LOGIC ===
+    
+    // 1. EXPORT CSV
+    function expCSV() {
+        const BOM="\uFEFF"; 
+        let csv=BOM+`DOANH NGHIỆP: ${state.name}\nLoại,Tên Đối Tượng,Mã,Nội Dung,Kết Quả,Ghi Chú,Tham Chiếu\n`;
+        const getT=s=>s==='OK'?'Đạt':(s==='NG'?'Không đạt':(s==='NA'?'N/A':''));
+        const cln=t=>(t||'').replace(/"/g,'""');
+        
+        db.filter(i=>i.area==='OFFICE').forEach(i=>{
+            const r=state.off[i.id]||{s:'',n:''};
+            csv+=`Hồ sơ,VP,${i.id},"${cln(i.text)}",${getT(r.s)},"${cln(r.n)}",${i.ref}\n`;
+        });
+        state.fld.forEach(u=>{
+            db.filter(i=>i.area===u.type).forEach(i=>{
+                const r=u.res[i.id]||{s:'',n:''};
+                csv+=`${u.type},"${cln(u.name)}",${i.id},"${cln(i.text)}",${getT(r.s)},"${cln(r.n)}",${i.ref}\n`;
+            });
+        });
+        
         const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
-        downloadFile(dataStr, `KetQua_${now}.json`, 'application/json');
+        downloadFile(csv, `BaoCao_${now}.csv`, 'text/csv');
     }
 
-    function impResults(input) {
+    // 2. IMPORT CSV RESULTS
+    function impResultsCSV(input, isWelcome) {
         const file = input.files[0]; if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                // Basic validation
-                if(data && (data.name || data.off || data.fld)) {
-                    state = data;
-                    if(!state.off) state.off = {};
-                    if(!state.fld) state.fld = [];
-                    save();
-                    document.getElementById('dispName').innerText = state.name;
-                    toast("Khôi phục thành công!");
-                    nav('scr-dash');
-                } else {
-                    alert("File không hợp lệ!");
-                }
-            } catch(err) {
-                alert("Lỗi đọc file JSON: " + err);
+            const lines = e.target.result.split(/\r\n|\n/);
+            
+            // Tìm dòng tên doanh nghiệp
+            let bizName = "";
+            if(lines[0].includes("DOANH NGHIỆP:")) {
+                bizName = lines[0].split(":")[1].trim();
             }
-            input.value = ''; // Reset input
+
+            // Parse dòng dữ liệu
+            let importedFld = [];
+            let importedOff = {};
+            
+            // Mapping Status Text -> Code
+            const codeMap = {"Đạt":"OK", "Không đạt":"NG", "N/A":"NA", "OK":"OK", "NG":"NG", "NA":"NA"};
+
+            for(let i=2; i<lines.length; i++) {
+                const p = parseCSVLine(lines[i]);
+                if(p.length < 5) continue; // Skip invalid lines
+                
+                const type = p[0].trim();
+                const uName = p[1].trim();
+                const id = p[2].trim();
+                const statusTxt = p[4].trim();
+                const note = p[5].trim();
+                const status = codeMap[statusTxt] || "";
+
+                if(type === 'Hồ sơ') {
+                    if(!importedOff[id]) importedOff[id] = {s:status, n:note, p:[]};
+                    else { importedOff[id].s = status; importedOff[id].n = note; }
+                } else {
+                    // Tìm unit trong importedFld
+                    let u = importedFld.find(x => x.name === uName && x.type === type);
+                    if(!u) {
+                        u = {id: Date.now() + Math.floor(Math.random()*1000), type: type, name: uName, res: {}};
+                        importedFld.push(u);
+                    }
+                    u.res[id] = {s:status, n:note, p:[]};
+                }
+            }
+
+            if(bizName) state.name = bizName;
+            
+            // Merge logic: Giữ ảnh cũ nếu có, cập nhật text mới
+            // (Đơn giản hóa: Ghi đè text, reset ảnh nếu chưa có logic merge sâu)
+            // Ở đây ta sẽ ghi đè hoàn toàn để đảm bảo đồng bộ với file Excel
+            state.off = importedOff;
+            state.fld = importedFld;
+            
+            save();
+            document.getElementById('dispName').innerText = state.name;
+            toast("Nhập dữ liệu CSV thành công!");
+            if(isWelcome) nav('scr-dash');
         };
         reader.readAsText(file);
+        input.value='';
     }
 
-    // 2. IMPORT/EXPORT DATABASE (CSV) - Cấu hình câu hỏi
+    function parseCSVLine(text) {
+        let ret=[], inQ=false, buf="";
+        for(let c of text) { if(c==='"'){inQ=!inQ;continue} if(c===','&&!inQ){ret.push(buf);buf=""}else buf+=c; }
+        ret.push(buf); return ret;
+    }
+
+    function expHTML() {
+        let h = `<html><head><meta charset="utf-8"><title>Báo cáo</title><style>
+        body{font-family:sans-serif} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;padding:8px} th{background:#eee}
+        .status-OK{color:green;font-weight:bold} .status-NG{color:red;font-weight:bold}
+        img{width:80px;height:80px;object-fit:cover;margin:2px;border:1px solid #ccc}
+        </style></head><body><h2>BÁO CÁO: ${state.name}</h2>`;
+        const genRow = (type, name, i, res) => {
+            let imgs = ''; (res.p||[]).forEach(src => imgs += `<img src="${src}">`);
+            let st = res.s==='OK'?'Đạt':(res.s==='NG'?'KHÔNG ĐẠT':(res.s==='NA'?'N/A':'-'));
+            let cls = 'status-'+res.s;
+            return `<tr><td>${type}</td><td>${name}</td><td>${i.id}</td><td>${i.text}</td><td class="${cls}">${st}</td><td>${res.n}</td><td>${imgs}</td></tr>`;
+        };
+        h += `<table><tr><th>Khu vực</th><th>Đối tượng</th><th>Mã</th><th>Nội dung</th><th>Kết quả</th><th>Ghi chú</th><th>Hình ảnh</th></tr>`;
+        db.filter(i=>i.area==='OFFICE').forEach(i=> h += genRow("Hồ sơ", "VP", i, state.off[i.id]||{}));
+        state.fld.forEach(u=> db.filter(i=>i.area===u.type).forEach(i=> h += genRow(u.type, u.name, i, u.res[i.id]||{})));
+        h += `</table></body></html>`;
+        const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
+        downloadFile(h, `BaoCaoAnh_${now}.html`, 'text/html');
+    }
+
     function dlTemp() {
         const BOM="\uFEFF"; let csv=BOM+"ID,Area,Text,Ref\n";
-        db.forEach(i=>csv+=`${i.id},${i.area},"${i.text}","${i.ref}"\n`);
+        db.forEach(i=>csv+=`${i.id},${i.area},"${i.text.replace(/"/g,'""')}","${i.ref.replace(/"/g,'""')}"\n`);
         downloadFile(csv, "Mau_Cau_Hoi.csv", "text/csv");
     }
     
@@ -377,60 +440,13 @@
         r.onload=e=>{
             const l=e.target.result.split(/\r\n|\n/); const nd=[];
             for(let i=1;i<l.length;i++) {
-                const p=l[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                const p=parseCSVLine(l[i]);
                 if(p.length>=3) nd.push({id:p[0].trim(),area:p[1].trim(),text:p[2].replace(/"/g,'').trim(),ref:p[3]?p[3].replace(/"/g,'').trim():''});
             }
-            if(nd.length){ db=nd; localStorage.setItem('v10_db',JSON.stringify(db)); toast("Cập nhật câu hỏi xong!"); }
+            if(nd.length){ db=nd; localStorage.setItem('v11_db',JSON.stringify(db)); toast("Cập nhật câu hỏi xong!"); }
         }; r.readAsText(f); inp.value='';
     }
-    
-    function resetDB() { localStorage.removeItem('v10_db'); db=JSON.parse(JSON.stringify(DEF_DB)); toast("Đã reset câu hỏi!"); }
-
-    // 3. EXPORT REPORTS
-    function expCSV() {
-        const BOM="\uFEFF"; let csv=BOM+`DOANH NGHIỆP: ${state.name}\nLoại,Tên,Mã,Nội dung,Kết quả,Ghi chú\n`;
-        const getT=s=>s==='OK'?'Đạt':(s==='NG'?'Không đạt':(s==='NA'?'N/A':''));
-        const cln=t=>(t||'').replace(/"/g,'""');
-        
-        db.filter(i=>i.area==='OFFICE').forEach(i=>{
-            const r=state.off[i.id]||{};
-            csv+=`Hồ sơ,VP,${i.id},"${cln(i.text)}",${getT(r.s)},"${cln(r.n)}"\n`;
-        });
-        state.fld.forEach(u=>{
-            db.filter(i=>i.area===u.type).forEach(i=>{
-                const r=u.res[i.id]||{};
-                csv+=`${u.type},"${cln(u.name)}",${i.id},"${cln(i.text)}",${getT(r.s)},"${cln(r.n)}"\n`;
-            });
-        });
-        
-        const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
-        downloadFile(csv, `BaoCao_${now}.csv`, 'text/csv');
-    }
-
-    function expHTML() {
-        let h = `<html><head><meta charset="utf-8"><title>Báo cáo</title><style>
-        body{font-family:sans-serif} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;padding:8px} th{background:#eee}
-        .status-OK{color:green;font-weight:bold} .status-NG{color:red;font-weight:bold}
-        img{width:80px;height:80px;object-fit:cover;margin:2px;border:1px solid #ccc}
-        </style></head><body><h2>BÁO CÁO: ${state.name}</h2>`;
-        
-        const genRow = (type, name, i, res) => {
-            let imgs = ''; (res.p||[]).forEach(src => imgs += `<img src="${src}">`);
-            let st = res.s==='OK'?'ĐẠT':(res.s==='NG'?'KHÔNG ĐẠT':(res.s==='NA'?'N/A':'-'));
-            let cls = 'status-'+res.s;
-            return `<tr><td>${type}</td><td>${name}</td><td>${i.id}</td><td>${i.text}</td><td class="${cls}">${st}</td><td>${res.n}</td><td>${imgs}</td></tr>`;
-        };
-
-        h += `<table><tr><th>Khu vực</th><th>Đối tượng</th><th>Mã</th><th>Nội dung</th><th>Kết quả</th><th>Ghi chú</th><th>Hình ảnh</th></tr>`;
-        db.filter(i=>i.area==='OFFICE').forEach(i=> h += genRow("Hồ sơ", "VP", i, state.off[i.id]||{}));
-        state.fld.forEach(u=> db.filter(i=>i.area===u.type).forEach(i=> h += genRow(u.type, u.name, i, u.res[i.id]||{})));
-        h += `</table></body></html>`;
-        
-        const now = new Date().toISOString().slice(0,19).replace(/T|:/g,'-');
-        downloadFile(h, `BaoCaoAnh_${now}.html`, 'text/html');
-    }
-
-    // UTILS
+    function resetDB() { localStorage.removeItem('v11_db'); db=JSON.parse(JSON.stringify(DEF_DB)); toast("Đã reset!"); }
     function downloadFile(content, name, mime) {
         const b = new Blob([content],{type:mime});
         const a=document.createElement("a");
